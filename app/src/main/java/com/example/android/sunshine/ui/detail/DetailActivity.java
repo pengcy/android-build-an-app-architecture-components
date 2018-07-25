@@ -15,10 +15,12 @@
  */
 package com.example.android.sunshine.ui.detail;
 
-import android.arch.lifecycle.LifecycleActivity;
+import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v7.app.AppCompatActivity;
 
 import com.example.android.sunshine.R;
 import com.example.android.sunshine.data.database.WeatherEntry;
@@ -32,7 +34,7 @@ import java.util.Date;
 /**
  * Displays single day's forecast
  */
-public class DetailActivity extends LifecycleActivity {
+public class DetailActivity extends AppCompatActivity {
 
     public static final String WEATHER_ID_EXTRA = "WEATHER_ID_EXTRA";
 
@@ -59,9 +61,13 @@ public class DetailActivity extends LifecycleActivity {
         mViewModel = ViewModelProviders.of(this, factory).get(DetailActivityViewModel.class);
 
         // Observers changes in the WeatherEntry with the id mId
-        mViewModel.getWeather().observe(this, weatherEntry -> {
-            // If the weather forecast details change, update the UI
-            if (weatherEntry != null) bindWeatherToUI(weatherEntry);
+
+        mViewModel.getWeather().observe(this, new Observer<WeatherEntry>() {
+                    @Override
+                    public void onChanged(@Nullable WeatherEntry weatherEntry) {
+                        // If the weather forecast details change, update the UI
+                        if (weatherEntry != null) bindWeatherToUI(weatherEntry);
+                    }
         });
 
     }

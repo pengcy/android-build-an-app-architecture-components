@@ -17,6 +17,8 @@
 package com.example.android.sunshine.data;
 
 import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.example.android.sunshine.AppExecutors;
@@ -54,15 +56,23 @@ public class SunshineRepository {
         // As long as the repository exists, observe the network LiveData.
         // If that LiveData changes, update the database.
         LiveData<WeatherEntry[]> networkData = mWeatherNetworkDataSource.getCurrentWeatherForecasts();
-        networkData.observeForever(newForecastsFromNetwork -> {
-            mExecutors.diskIO().execute(() -> {
-                // Deletes old historical data
-                deleteOldData();
-                Log.d(LOG_TAG, "Old weather deleted");
-                // Insert our new weather data into Sunshine's database
-                mWeatherDao.bulkInsert(newForecastsFromNetwork);
-                Log.d(LOG_TAG, "New values inserted");
-            });
+
+
+        networkData.observeForever(new Observer<WeatherEntry[]>() {
+            @Override
+            public void onChanged(@Nullable final WeatherEntry[] newForecastsFromNetwork) {
+                mExecutors.diskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Deletes old historical data
+                        deleteOldData();
+                        Log.d(LOG_TAG, "Old weather deleted");
+                        // Insert our new weather data into Sunshine's database
+                        mWeatherDao.bulkInsert(newForecastsFromNetwork);
+                        Log.d(LOG_TAG, "New values inserted");
+                    }
+                });
+            }
         });
     }
 
@@ -95,11 +105,15 @@ public class SunshineRepository {
         // periodically.
         mWeatherNetworkDataSource.scheduleRecurringFetchWeatherSync();
 
-        mExecutors.diskIO().execute(() -> {
-            if (isFetchNeeded()) {
-                startFetchWeatherService();
+        mExecutors.diskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                if (isFetchNeeded()) {
+                    startFetchWeatherService();
+                }
             }
         });
+
     }
 
     /**
